@@ -6,7 +6,7 @@ import std::io;
 Port of github.com/kokke/tiny-aes-c
 
 This is an implementation of the AES algorithm, specifically ECB, CTR and CBC
-mode. Block size can be chosen in aes.h - available choices are AES128, AES192,
+mode. Key size can be chosen in aes.h - available choices are AES128, AES192,
 AES256.
 
 The implementation is verified against the test vectors in:
@@ -27,9 +27,9 @@ const NB = 4;
 
 struct AesKeyType
 {
-	usz block_size;
+	usz key_size;
 	int key_len;
-	int key_exp_size;
+	int key_exp_size; // expected size of round_key
 	usz nk; // number of 32 bit words in a key.
 	usz nr; // number of rounds in AES cipher.
 }
@@ -98,6 +98,9 @@ struct AesCtx
 	char[NB][NB] state;
 }
 
+<*
+@require key.len == type.key_len, "Key does not match expected size."
+*>
 fn AesCtx* AesCtx.init(&self, AesKeyType type, char[] key)
 {
 	self.type = type;
@@ -105,6 +108,10 @@ fn AesCtx* AesCtx.init(&self, AesKeyType type, char[] key)
 	return self;
 }
 
+<*
+@require key.len == type.key_len, "Key does not match expected length."
+@require iv.len == AES_BLOCKLEN, "iv length should be equal to AES_BLOCKLEN."
+*>
 fn AesCtx* AesCtx.init_with_iv(&self, AesKeyType type, char[] key, char[] iv)
 {
 	self.init(type, key);
@@ -116,13 +123,16 @@ fn AesCtx* AesCtx.init_with_iv(&self, AesKeyType type, char[] key, char[] iv)
 	return self;
 }
 
+<*
+@require iv.len == AES_BLOCKLEN, "iv length should be equal to AES_BLOCKLEN."
+*>
 fn AesCtx* AesCtx.set_iv(&self, char[] iv)
 {
 	self.iv[:AES_BLOCKLEN] = iv[:AES_BLOCKLEN];
 	return self;
 }
 
-fn void AesCtx.add_round_key(&self, usz round, char[] round_key)
+fn void AesCtx.add_round_key(&self, usz round, char[] round_key) @private
 {
 	usz i, j;
 	for (i = 0; i < 4; i++)
@@ -134,7 +144,7 @@ fn void AesCtx.add_round_key(&self, usz round, char[] round_key)
 	}
 }
 
-fn void AesCtx.sub_bytes(&self)
+fn void AesCtx.sub_bytes(&self) @private
 {
 	usz i, j;
 	for (i = 0; i < 4; i++)
@@ -146,7 +156,7 @@ fn void AesCtx.sub_bytes(&self)
 	}
 }
 
-fn void AesCtx.shift_rows(&self)
+fn void AesCtx.shift_rows(&self) @private
 {
 	char temp;
 
@@ -176,7 +186,7 @@ fn char xtime(char x) @local
 	return ((x << 1) ^ (((x >> 7) & 1) * 0x1b));
 }
 
-fn void AesCtx.mix_columns(&self)
+fn void AesCtx.mix_columns(&self) @private
 {
 	usz i;
 	char tmp, tm, t;
@@ -212,7 +222,7 @@ fn char multiply(char x, char y) @local
 	(((y>>4) & 1) * xtime(xtime(xtime(xtime(x))))));
 }
 
-fn void AesCtx.inv_mix_columns(&self)
+fn void AesCtx.inv_mix_columns(&self) @private
 {
 	usz i;
 	char a, b, c, d;
@@ -230,7 +240,7 @@ fn void AesCtx.inv_mix_columns(&self)
 	}
 }
 
-fn void AesCtx.inv_sub_bytes(&self)
+fn void AesCtx.inv_sub_bytes(&self) @private
 {
 	usz i, j;
 	for (i = 0; i < 4; i++)
@@ -242,7 +252,7 @@ fn void AesCtx.inv_sub_bytes(&self)
 	}
 }
 
-fn void AesCtx.inv_shift_rows(&self)
+fn void AesCtx.inv_shift_rows(&self) @private
 {
 	char temp;
 
@@ -267,7 +277,7 @@ fn void AesCtx.inv_shift_rows(&self)
 	self.state[3][3] = temp;
 }
 
-fn void AesCtx.cipher(&self, char[] round_key)
+fn void AesCtx.cipher(&self, char[] round_key) @private
 {
 	usz round = 0;
 
@@ -284,7 +294,7 @@ fn void AesCtx.cipher(&self, char[] round_key)
 	self.add_round_key(self.type.nr, round_key);
 }
 
-fn void AesCtx.inv_cipher(&self, char[] round_key)
+fn void AesCtx.inv_cipher(&self, char[] round_key) @private
 {
 	usz round = 0;
 
@@ -306,7 +316,10 @@ fn void AesCtx.inv_cipher(&self, char[] round_key)
  *
  */
 
-fn void AesKeyType.key_expansion(&self, char[] round_key, char[] key)
+<*
+@require key.len == self.key_len, "Key does not match expected length."
+*>
+fn void AesKeyType.key_expansion(&self, char[] round_key, char[] key) @private
 {
 	usz i, j, k;
 	char[4] tempa;
@@ -345,7 +358,7 @@ fn void AesKeyType.key_expansion(&self, char[] round_key, char[] key)
 			tempa[0] = tempa[0] ^ RCON[i/self.nk];
 		}
 
-		if (self.block_size == 256)
+		if (self.key_size == 256)
 		{
 			if (i % self.nk == 4)
 			{
