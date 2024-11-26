@@ -2,6 +2,8 @@ module crypto::aes;
 
 import std::io;
 
+import crypto::aes::impl @public;
+
 /*
 Port of github.com/kokke/tiny-aes-c
 
@@ -20,7 +22,7 @@ For AES192/256 the key size is proportionally larger.
 */
 
 // block length in bytes. AES is 128-bit blocks only.
-const AES_BLOCKLEN = 16;
+const BLOCKLEN = 16;
 
 // number of columns of a AES state.
 const NB = 4;
@@ -37,6 +39,57 @@ struct AesKey
 const AesKey AES128 = { 128, 16, 176, 4, 10 };
 const AesKey AES192 = { 192, 24, 208, 6, 12 };
 const AesKey AES256 = { 256, 32, 240, 8, 14 };
+
+/*
+ *
+ * AesCtx
+ *
+ */
+
+struct AesCtx
+{
+	AesKey type;
+	char[256] round_key;
+	char[BLOCKLEN] iv;
+	char[NB][NB] state;
+}
+
+<*
+@require key.len == type.key_len, "Key does not match expected size."
+*>
+fn AesCtx* AesCtx.init(&self, AesKey type, char[] key)
+{
+	self.type = type;
+	self.type.key_expansion(&self.round_key, key);
+	return self;
+}
+
+<*
+@require key.len == type.key_len, "Key does not match expected length."
+@require iv.len == BLOCKLEN, "iv length should be equal to BLOCKLEN."
+*>
+fn AesCtx* AesCtx.init_with_iv(&self, AesKey type, char[] key, char[] iv)
+{
+	self.init(type, key);
+	if (iv.len < BLOCKLEN)
+	{
+		io::eprintn("iv: not long enough?");
+	}
+	self.iv[:BLOCKLEN] = iv[:BLOCKLEN];
+	return self;
+}
+
+<*
+@require iv.len == BLOCKLEN, "iv length should be equal to BLOCKLEN."
+*>
+fn AesCtx* AesCtx.set_iv(&self, char[] iv)
+{
+	self.iv[:BLOCKLEN] = iv[:BLOCKLEN];
+	return self;
+}
+
+
+module crypto::aes::impl @private;
 
 macro char get_sbox_value(num) => SBOX[num];
 macro char get_sbox_invert(num) => RSBOX[num];
@@ -84,54 +137,6 @@ const char[11] RCON = {
   0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36,
 };
 
-/*
- *
- * AesCtx
- *
- */
-
-struct AesCtx
-{
-	AesKey type;
-	char[256] round_key;
-	char[AES_BLOCKLEN] iv;
-	char[NB][NB] state;
-}
-
-<*
-@require key.len == type.key_len, "Key does not match expected size."
-*>
-fn AesCtx* AesCtx.init(&self, AesKey type, char[] key)
-{
-	self.type = type;
-	self.type.key_expansion(&self.round_key, key);
-	return self;
-}
-
-<*
-@require key.len == type.key_len, "Key does not match expected length."
-@require iv.len == AES_BLOCKLEN, "iv length should be equal to AES_BLOCKLEN."
-*>
-fn AesCtx* AesCtx.init_with_iv(&self, AesKey type, char[] key, char[] iv)
-{
-	self.init(type, key);
-	if (iv.len < AES_BLOCKLEN)
-	{
-		io::eprintn("iv: not long enough?");
-	}
-	self.iv[:AES_BLOCKLEN] = iv[:AES_BLOCKLEN];
-	return self;
-}
-
-<*
-@require iv.len == AES_BLOCKLEN, "iv length should be equal to AES_BLOCKLEN."
-*>
-fn AesCtx* AesCtx.set_iv(&self, char[] iv)
-{
-	self.iv[:AES_BLOCKLEN] = iv[:AES_BLOCKLEN];
-	return self;
-}
-
 fn void AesCtx.add_round_key(&self, usz round, char[] round_key) @private
 {
 	usz i, j;
@@ -139,7 +144,7 @@ fn void AesCtx.add_round_key(&self, usz round, char[] round_key) @private
 	{
 		for (j = 0; j < 4; j++)
 		{
-			self.state[i][j] ^= round_key[(round * NB * 4) + (i * NB) + j];
+			self.state[i][j] ^= round_key[(round * aes::NB * 4) + (i * aes::NB) + j];
 		}
 	}
 }
@@ -332,7 +337,7 @@ fn void AesKey.key_expansion(&self, char[] round_key, char[] key) @private
 		round_key[(i * 4) + 3] = key[(i * 4) + 3];
 	}
 
-	for (i = self.nk; i < NB * (self.nr + 1); i++)
+	for (i = self.nk; i < aes::NB * (self.nr + 1); i++)
 	{
 		k = (i - 1) * 4;
 		tempa[0] = round_key[k + 0];
@@ -383,6 +388,12 @@ fn void AesKey.key_expansion(&self, char[] round_key, char[] key) @private
  * ECB
  *
  */
+module crypto::aes::ecb;
+
+import crypto::aes::impl @public;
+
+fn void encrypt(AesCtx *ctx, char[] buf, char[] out) @inline => ecb_encrypt(ctx, buf, out);
+fn void decrypt(AesCtx *ctx, char[] buf, char[] out) @inline => ecb_decrypt(ctx, buf, out);
 
 <*
 @param [&inout] ctx "AES context."
@@ -441,11 +452,18 @@ fn void ecb_decrypt(AesCtx *ctx, char[] buf, char[] out)
  * CBC
  *
  */
+module crypto::aes::cbc;
 
-fn void xor_with_iv(char[] buf, char[] iv)
+import crypto::aes::ecb;
+
+fn void encrypt(AesCtx *ctx, char[] buf, char[] out) @inline => cbc_encrypt_buffer(ctx, buf, out);
+fn void decrypt(AesCtx *ctx, char[] buf, char[] out) @inline => cbc_decrypt_buffer(ctx, buf, out);
+
+
+fn void xor_with_iv(char[] buf, char[] iv) @local
 {
 	usz i;
-	for (i = 0; i < AES_BLOCKLEN; i++)
+	for (i = 0; i < aes::BLOCKLEN; i++)
 	{
 		buf[i] ^= iv[i];
 	}
@@ -455,44 +473,44 @@ fn void xor_with_iv(char[] buf, char[] iv)
 @param [&inout] ctx "AES context."
 @param [in] buf "Plaintext input."
 @param [out] out "Cipher output."
-@require buf.len % AES_BLOCKLEN == 0, "buf must be a multiple of 16."
-@require out.len % AES_BLOCKLEN == 0, "out must be a multiple of 16."
+@require buf.len % aes::BLOCKLEN == 0, "buf must be a multiple of 16."
+@require out.len % aes::BLOCKLEN == 0, "out must be a multiple of 16."
 *>
 fn void cbc_encrypt_buffer(AesCtx *ctx, char[] buf, char[] out)
 {
 	usz i;
 	char[] iv = ctx.iv[..];
-	char[AES_BLOCKLEN] tmp;
-	char[AES_BLOCKLEN] tmp2;
-	for (i = 0; i < buf.len; i += AES_BLOCKLEN)
+	char[aes::BLOCKLEN] tmp;
+	char[aes::BLOCKLEN] tmp2;
+	for (i = 0; i < buf.len; i += aes::BLOCKLEN)
 	{
-		tmp[:AES_BLOCKLEN] = buf[i:AES_BLOCKLEN];
+		tmp[:aes::BLOCKLEN] = buf[i:aes::BLOCKLEN];
 		xor_with_iv(&tmp, iv);
-		ecb_encrypt(ctx, &tmp, &tmp2);
-		out[i:AES_BLOCKLEN] = tmp2[..];
-		iv[:AES_BLOCKLEN] = tmp2[..];
+		ecb::encrypt(ctx, &tmp, &tmp2);
+		out[i:aes::BLOCKLEN] = tmp2[..];
+		iv[:aes::BLOCKLEN] = tmp2[..];
 	}
 	// store iv in ctx for next call
-	ctx.iv[:AES_BLOCKLEN] = iv[:AES_BLOCKLEN];
+	ctx.iv[:aes::BLOCKLEN] = iv[:aes::BLOCKLEN];
 }
 
 <*
 @param [&inout] ctx "AES context."
 @param [in] buf "Cipher input."
 @param [out] out "Plaintext output."
-@require buf.len % AES_BLOCKLEN == 0, "buf must be a multiple of 16."
-@require out.len % AES_BLOCKLEN == 0, "out must be a multiple of 16."
+@require buf.len % aes::BLOCKLEN == 0, "buf must be a multiple of 16."
+@require out.len % aes::BLOCKLEN == 0, "out must be a multiple of 16."
 *>
 fn void cbc_decrypt_buffer(AesCtx *ctx, char[] buf, char[] out)
 {
 	usz i;
-	char[AES_BLOCKLEN] tmp;
-	for (i = 0; i < buf.len; i += AES_BLOCKLEN)
+	char[aes::BLOCKLEN] tmp;
+	for (i = 0; i < buf.len; i += aes::BLOCKLEN)
 	{
-		ecb_decrypt(ctx, buf[i:AES_BLOCKLEN], &tmp);
+		ecb::decrypt(ctx, buf[i:aes::BLOCKLEN], &tmp);
 		xor_with_iv(&tmp, ctx.iv[..]);
-		out[i:AES_BLOCKLEN] = tmp[..];
-		ctx.iv[:AES_BLOCKLEN] = buf[i:AES_BLOCKLEN];
+		out[i:aes::BLOCKLEN] = tmp[..];
+		ctx.iv[:aes::BLOCKLEN] = buf[i:aes::BLOCKLEN];
 	}
 }
 
@@ -501,28 +519,34 @@ fn void cbc_decrypt_buffer(AesCtx *ctx, char[] buf, char[] out)
  * CTR
  *
  */
+module crypto::aes::ctr;
+
+import crypto::aes::ecb;
+
+fn void encrypt(AesCtx *ctx, char[] buf, char[] out) @inline => ctr_xcrypt_buffer(ctx, buf, out);
+fn void decrypt(AesCtx *ctx, char[] buf, char[] out) @inline => ctr_xcrypt_buffer(ctx, buf, out);
 
 <*
 @param [&inout] ctx "AES context."
 @param [in] buf "Plaintext input."
 @param [out] out "Cipher output."
-@require buf.len % AES_BLOCKLEN == 0, "buf must be a multiple of 16."
-@require out.len % AES_BLOCKLEN == 0, "out must be a multiple of 16."
+@require buf.len % aes::BLOCKLEN == 0, "buf must be a multiple of 16."
+@require out.len % aes::BLOCKLEN == 0, "out must be a multiple of 16."
 *>
 fn void ctr_xcrypt_buffer(AesCtx *ctx, char[] buf, char[] out)
 {
-	 char[AES_BLOCKLEN] buffer;
+	 char[aes::BLOCKLEN] buffer;
 
 	 usz i;
-	 int bi = AES_BLOCKLEN;
+	 int bi = aes::BLOCKLEN;
 	 for (i = 0; i < buf.len; i++)
 	 {
-		 if (bi == AES_BLOCKLEN)
+		 if (bi == aes::BLOCKLEN)
 		 {
 			 buffer[..] = ctx.iv[..];
-			 ecb_encrypt(ctx, &buffer, &buffer);
+			 ecb::encrypt(ctx, &buffer, &buffer);
 
-			 for LOOP: (bi = (AES_BLOCKLEN - 1); bi >= 0; bi--)
+			 for LOOP: (bi = (aes::BLOCKLEN - 1); bi >= 0; bi--)
 			 {
 				 if (ctx.iv[bi] == 255)
 				 {

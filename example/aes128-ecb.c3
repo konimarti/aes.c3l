@@ -10,7 +10,7 @@ fn void main()
 
 	char[16] cipher;
 
-	aes::ecb_encrypt(AesCtx{}.init(aes::AES128, key), text, &cipher);
+	ecb::encrypt(AesCtx{}.init(aes::AES128, key), text, &cipher);
 
 	assert(cipher[:16] == x"3ad77bb40d7a3660a89ecaf32466ef97");
 }

@@ -14,14 +14,14 @@ AesCtx *ctx = AesCtx{}.init(aes::AES128, key);
 AesCtx *ctx = AesCtx{}.init_with_iv(aes::AES128, key, iv);
 
 // Start encrypting and decrypting with either the ECB or CBC modes.
-fn void ecb_encrypt(AesCtx *ctx, char[] buf, char[] out)
-fn void ecb_decrypt(AesCtx *ctx, char[] buf, char[] out)
+fn void ecb::encrypt(AesCtx *ctx, char[] buf, char[] out)
+fn void ecb::decrypt(AesCtx *ctx, char[] buf, char[] out)
 
-fn void cbc_encrypt_buffer(AesCtx *ctx, char[] buf, char[] out)
-fn void cbc_decrypt_buffer(AesCtx *ctx, char[] buf, char[] out)
+fn void cbc::encrypt(AesCtx *ctx, char[] buf, char[] out)
+fn void cbc::decrypt(AesCtx *ctx, char[] buf, char[] out)
 
-// Same function for encrypting as for decrypting in CTR mode
-fn void ctr_xcrypt_buffer(AesCtx *ctx, char[] buf, char[] out)
+fn void ctr::encrypt(AesCtx *ctx, char[] buf, char[] out)
+fn void ctr::decrypt(AesCtx *ctx, char[] buf, char[] out)
 ```
 
 
@@ -40,7 +40,7 @@ fn void main()
 
 	char[16] cipher;
 
-	aes::ecb_encrypt(AesCtx{}.init(aes::AES128, key), text, &cipher);
+	ecb::encrypt(AesCtx{}.init(aes::AES128, key), text, &cipher);
 
 	assert(cipher[:16] == x"3ad77bb40d7a3660a89ecaf32466ef97");
 }
