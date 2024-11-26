@@ -25,7 +25,7 @@ const AES_BLOCKLEN = 16;
 // number of columns of a AES state.
 const NB = 4;
 
-struct AesKeyType
+struct AesKey
 {
 	usz key_size;
 	int key_len;
@@ -34,9 +34,9 @@ struct AesKeyType
 	usz nr; // number of rounds in AES cipher.
 }
 
-const AesKeyType AES128 = { 128, 16, 176, 4, 10 };
-const AesKeyType AES192 = { 192, 24, 208, 6, 12 };
-const AesKeyType AES256 = { 256, 32, 240, 8, 14 };
+const AesKey AES128 = { 128, 16, 176, 4, 10 };
+const AesKey AES192 = { 192, 24, 208, 6, 12 };
+const AesKey AES256 = { 256, 32, 240, 8, 14 };
 
 macro char get_sbox_value(num) => SBOX[num];
 macro char get_sbox_invert(num) => RSBOX[num];
@@ -92,7 +92,7 @@ const char[11] RCON = {
 
 struct AesCtx
 {
-	AesKeyType type;
+	AesKey type;
 	char[256] round_key;
 	char[AES_BLOCKLEN] iv;
 	char[NB][NB] state;
@@ -101,7 +101,7 @@ struct AesCtx
 <*
 @require key.len == type.key_len, "Key does not match expected size."
 *>
-fn AesCtx* AesCtx.init(&self, AesKeyType type, char[] key)
+fn AesCtx* AesCtx.init(&self, AesKey type, char[] key)
 {
 	self.type = type;
 	self.type.key_expansion(&self.round_key, key);
@@ -112,7 +112,7 @@ fn AesCtx* AesCtx.init(&self, AesKeyType type, char[] key)
 @require key.len == type.key_len, "Key does not match expected length."
 @require iv.len == AES_BLOCKLEN, "iv length should be equal to AES_BLOCKLEN."
 *>
-fn AesCtx* AesCtx.init_with_iv(&self, AesKeyType type, char[] key, char[] iv)
+fn AesCtx* AesCtx.init_with_iv(&self, AesKey type, char[] key, char[] iv)
 {
 	self.init(type, key);
 	if (iv.len < AES_BLOCKLEN)
@@ -319,7 +319,7 @@ fn void AesCtx.inv_cipher(&self, char[] round_key) @private
 <*
 @require key.len == self.key_len, "Key does not match expected length."
 *>
-fn void AesKeyType.key_expansion(&self, char[] round_key, char[] key) @private
+fn void AesKey.key_expansion(&self, char[] round_key, char[] key) @private
 {
 	usz i, j, k;
 	char[4] tempa;

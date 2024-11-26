@@ -6,7 +6,7 @@ import std::io;
 
 struct TestCase 
 {
-	AesKeyType aes;
+	AesKey aes;
 	char[] key;
 	char[] plaintext;
 	char[] cipher;
