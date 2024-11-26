@@ -13,15 +13,19 @@ import crypto::aes;
 AesCtx *ctx = AesCtx{}.init(aes::AES128, key);
 AesCtx *ctx = AesCtx{}.init_with_iv(aes::AES128, key, iv);
 
-// Start encrypting and decrypting with either the ECB or CBC modes.
-fn void ecb::encrypt(AesCtx *ctx, char[] buf, char[] out)
-fn void ecb::decrypt(AesCtx *ctx, char[] buf, char[] out)
+// Start encrypting and decrypting with either the ECB, CBC or CTR modes.
+// Each mode defines a namespace with the following functions:
+fn void encrypt_buffer(AesCtx *ctx, char[] text, char[] cipher)
+fn void decrypt_buffer(AesCtx *ctx, char[] cipher, char[] text)
 
-fn void cbc::encrypt(AesCtx *ctx, char[] buf, char[] out)
-fn void cbc::decrypt(AesCtx *ctx, char[] buf, char[] out)
+fn char[] encrypt(AesCtx *ctx, char[] text, Allocator allocator)
+fn char[] decrypt(AesCtx *ctx, char[] cipher, Allocator allocator)
 
-fn void ctr::encrypt(AesCtx *ctx, char[] buf, char[] out)
-fn void ctr::decrypt(AesCtx *ctx, char[] buf, char[] out)
+fn char[] encrypt_new(AesCtx *ctx, char[] text)
+fn char[] encrypt_temp(AesCtx *ctx, char[] text)
+
+fn char[] decrypt_new(AesCtx *ctx, char[] cipher)
+fn char[] decrypt_temp(AesCtx *ctx, char[] cipher)
 ```
 
 
@@ -38,12 +42,12 @@ fn void main()
 	char[] key 	= x"2b7e151628aed2a6abf7158809cf4f3c";
 	char[] text	= x"6bc1bee22e409f96e93d7e117393172a";
 
-	char[16] cipher;
+	char[] cipher = ecb::encrypt_new(AesCtx{}.init(aes::AES128, key), text);
+	defer free(cipher);
 
-	ecb::encrypt(AesCtx{}.init(aes::AES128, key), text, &cipher);
-
-	assert(cipher[:16] == x"3ad77bb40d7a3660a89ecaf32466ef97");
+	assert(cipher == x"3ad77bb40d7a3660a89ecaf32466ef97");
 }
+
 ```
 
 ### Installation
