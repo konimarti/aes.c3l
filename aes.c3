@@ -53,7 +53,7 @@ struct AesCtx
 }
 
 <*
-@require key.len == type.key_len, "Key does not match expected size."
+@require key.len == type.key_len : "Key does not match expected size."
 *>
 fn AesCtx* AesCtx.init(&self, AesKey type, char[] key)
 {
@@ -63,8 +63,8 @@ fn AesCtx* AesCtx.init(&self, AesKey type, char[] key)
 }
 
 <*
-@require key.len == type.key_len, "Key does not match expected length."
-@require iv.len == BLOCKLEN, "iv length should be equal to BLOCKLEN."
+@require key.len == type.key_len : "Key does not match expected length."
+@require iv.len == BLOCKLEN : "iv length should be equal to BLOCKLEN."
 *>
 fn AesCtx* AesCtx.init_with_iv(&self, AesKey type, char[] key, char[] iv)
 {
@@ -78,7 +78,7 @@ fn AesCtx* AesCtx.init_with_iv(&self, AesKey type, char[] key, char[] iv)
 }
 
 <*
-@require iv.len == BLOCKLEN, "iv length should be equal to BLOCKLEN."
+@require iv.len == BLOCKLEN : "iv length should be equal to BLOCKLEN."
 *>
 fn AesCtx* AesCtx.set_iv(&self, char[] iv)
 {
@@ -114,9 +114,9 @@ fn char[] decrypt_new(AesCtx *ctx, char[] buf) @inline => decrypt(ctx, buf, allo
 fn char[] decrypt_temp(AesCtx *ctx, char[] buf) @inline => decrypt(ctx, buf, allocator::temp());
 
 <*
-@param [&inout] ctx "AES context."
-@param [in] buf "Plaintext input."
-@param [out] out "Cipher output."
+@param [&inout] ctx : "AES context."
+@param [in] buf : "Plaintext input."
+@param [out] out : "Cipher output."
 @require buf.len == 16, out.len == 16
 *>
 fn void ecb_encrypt(AesCtx *ctx, char[] buf, char[] out)
@@ -140,9 +140,9 @@ fn void ecb_encrypt(AesCtx *ctx, char[] buf, char[] out)
 }
 
 <*
-@param [&inout] ctx "AES context."
-@param [in] buf "Plaintext input."
-@param [out] out "Cipher output."
+@param [&inout] ctx : "AES context."
+@param [in] buf : "Plaintext input."
+@param [out] out : "Cipher output."
 @require buf.len == 16, out.len == 16
 *>
 fn void ecb_decrypt(AesCtx *ctx, char[] buf, char[] out)
@@ -204,11 +204,11 @@ fn void xor_with_iv(char[] buf, char[] iv) @local
 }
 
 <*
-@param [&inout] ctx "AES context."
-@param [in] buf "Plaintext input."
-@param [out] out "Cipher output."
-@require buf.len % aes::BLOCKLEN == 0, "buf must be a multiple of 16."
-@require out.len % aes::BLOCKLEN == 0, "out must be a multiple of 16."
+@param [&inout] ctx : "AES context."
+@param [in] buf : "Plaintext input."
+@param [out] out : "Cipher output."
+@require buf.len % aes::BLOCKLEN == 0 : "buf must be a multiple of 16."
+@require out.len % aes::BLOCKLEN == 0 : "out must be a multiple of 16."
 *>
 fn void cbc_encrypt_buffer(AesCtx *ctx, char[] buf, char[] out)
 {
@@ -229,11 +229,11 @@ fn void cbc_encrypt_buffer(AesCtx *ctx, char[] buf, char[] out)
 }
 
 <*
-@param [&inout] ctx "AES context."
-@param [in] buf "Cipher input."
-@param [out] out "Plaintext output."
-@require buf.len % aes::BLOCKLEN == 0, "buf must be a multiple of 16."
-@require out.len % aes::BLOCKLEN == 0, "out must be a multiple of 16."
+@param [&inout] ctx : "AES context."
+@param [in] buf : "Cipher input."
+@param [out] out : "Plaintext output."
+@require buf.len % aes::BLOCKLEN == 0 : "buf must be a multiple of 16."
+@require out.len % aes::BLOCKLEN == 0 : "out must be a multiple of 16."
 *>
 fn void cbc_decrypt_buffer(AesCtx *ctx, char[] buf, char[] out)
 {
@@ -278,11 +278,11 @@ fn char[] decrypt_new(AesCtx *ctx, char[] buf) @inline => decrypt(ctx, buf, allo
 fn char[] decrypt_temp(AesCtx *ctx, char[] buf) @inline => decrypt(ctx, buf, allocator::temp());
 
 <*
-@param [&inout] ctx "AES context."
-@param [in] buf "Plaintext input."
-@param [out] out "Cipher output."
-@require buf.len % aes::BLOCKLEN == 0, "buf must be a multiple of 16."
-@require out.len % aes::BLOCKLEN == 0, "out must be a multiple of 16."
+@param [&inout] ctx : "AES context."
+@param [in] buf : "Plaintext input."
+@param [out] out : "Cipher output."
+@require buf.len % aes::BLOCKLEN == 0 : "buf must be a multiple of 16."
+@require out.len % aes::BLOCKLEN == 0 : "out must be a multiple of 16."
 *>
 fn void ctr_xcrypt_buffer(AesCtx *ctx, char[] buf, char[] out)
 {
@@ -554,7 +554,7 @@ fn void AesCtx.inv_cipher(&self, char[] round_key)
  */
 
 <*
-@require key.len == self.key_len, "Key does not match expected length."
+@require key.len == self.key_len : "Key does not match expected length."
 *>
 fn void AesKey.key_expansion(&self, char[] round_key, char[] key) @private
 {

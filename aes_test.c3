@@ -4,7 +4,7 @@ module crypto::aes_test;
 import crypto::aes;
 import std::io;
 
-struct TestCase 
+struct TestCase
 {
 	AesKey aes;
 	char[] key;
@@ -12,7 +12,7 @@ struct TestCase
 	char[] cipher;
 }
 
-fn void! test_ecb_encrypt() @test
+fn void test_ecb_encrypt() @test
 {
 	char[16] out;
 	TestCase[] tests = {
@@ -76,7 +76,7 @@ fn void! test_ecb_encrypt() @test
 	}
 }
 
-fn void! test_ecb_decrypt() @test
+fn void test_ecb_decrypt() @test
 {
 	char[16] out;
 	TestCase[] tests = {
@@ -121,7 +121,7 @@ fn void! test_ecb_decrypt() @test
 	}
 }
 
-fn void! test_cbc_encrypt() @test
+fn void test_cbc_encrypt() @test
 {
 	char[64] out;
 	TestCase[] tests = {
@@ -167,7 +167,7 @@ fn void! test_cbc_encrypt() @test
 	}
 }
 
-fn void! test_cbc_decrypt() @test
+fn void test_cbc_decrypt() @test
 {
 	char[64] out;
 	TestCase[] tests = {
@@ -213,7 +213,7 @@ fn void! test_cbc_decrypt() @test
 	}
 }
 
-fn void! test_ctr_xcrypt() @test
+fn void test_ctr_xcrypt() @test
 {
 	char[64] out;
 	TestCase[] tests = {
