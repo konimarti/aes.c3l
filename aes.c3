@@ -243,8 +243,8 @@ fn void cbc_decrypt_buffer(AesCtx *ctx, char[] buf, char[] out)
 	{
 		ecb::decrypt_buffer(ctx, buf[i:aes::BLOCKLEN], &tmp);
 		xor_with_iv(&tmp, ctx.iv[..]);
-		out[i:aes::BLOCKLEN] = tmp[..];
 		ctx.iv[:aes::BLOCKLEN] = buf[i:aes::BLOCKLEN];
+		out[i:aes::BLOCKLEN] = tmp[..];
 	}
 }
 
