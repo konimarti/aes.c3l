@@ -1,28 +1,24 @@
-module crypto::aes;
-
-import std::io;
-
-/*
-Port of github.com/kokke/tiny-aes-c
-
+<*
 This is an implementation of the AES algorithm, specifically ECB, CTR and CBC
-mode. Key size can be chosen in aes.h - available choices are AES128, AES192,
-AES256.
+mode. Key size can be chosen among AES128, AES192, AES256.
 
-The implementation is verified against the test vectors in:
-  National Institute of Standards and Technology Special Publication 800-38A
-2001 ED
+The implementation is verified against the test vectors in: National Institute
+of Standards and Technology Special Publication 800-38A 2001 ED
 
 String length must be evenly divisible by 16 bytes (str_len % 16 == 0).
 You should pad the end of the string with zeros if this is not the case.
 For AES192/256 the key size is proportionally larger.
 
-*/
+Ported from github.com/kokke/tiny-aes-c by Koni Marti.
+*>
+module crypto::aes;
 
-// block length in bytes. AES is 128-bit blocks only.
+import std::io;
+
+<* Block length in bytes. AES is 128-bit blocks only. *>
 const BLOCKLEN = 16;
 
-// number of columns of a AES state.
+<* Number of columns of a AES state. *>
 const NB = 4;
 
 struct AesKey
