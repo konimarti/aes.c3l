@@ -17,15 +17,15 @@ module crypto::aes;
 const BLOCKLEN = 16;
 
 <* Number of columns of a AES state. *>
-const NB = 4;
+const COLNUM = 4;
 
 struct AesKey
 {
 	usz key_size;
 	int key_len;
 	int key_exp_size; // expected size of round_key
-	usz nk; // number of 32 bit words in a key.
-	usz nr; // number of rounds in AES cipher.
+	usz nk;		  // number of 32 bit words in a key.
+	usz nr;           // number of rounds in AES cipher.
 }
 
 const AesKey AES128 = { 128, 16, 176, 4, 10 };
@@ -45,7 +45,7 @@ struct AesCtx
 	AesKey type;
 	char[256] round_key;
 	char[BLOCKLEN] iv;
-	char[NB][NB] state;
+	char[COLNUM][COLNUM] state;
 }
 
 <*
@@ -92,22 +92,20 @@ module crypto::aes::ecb;
 fn void encrypt_buffer(AesCtx *ctx, char[] buf, char[] out) @inline => ecb_encrypt(ctx, buf, out);
 fn void decrypt_buffer(AesCtx *ctx, char[] buf, char[] out) @inline => ecb_decrypt(ctx, buf, out);
 
-fn char[] encrypt(AesCtx *ctx, char[] buf, Allocator allocator) {
+fn char[] encrypt(AesCtx *ctx, char[] buf, Allocator allocator = mem) {
 	char[] out = allocator::alloc_array(allocator, char, 16);
 	encrypt_buffer(ctx, buf, out);
 	return out;
 }
 
-fn char[] decrypt(AesCtx *ctx, char[] buf, Allocator allocator) {
+fn char[] decrypt(AesCtx *ctx, char[] buf, Allocator allocator = mem) {
 	char[] out = allocator::alloc_array(allocator, char, 16);
 	decrypt_buffer(ctx, buf, out);
 	return out;
 }
 
-fn char[] encrypt_new(AesCtx *ctx, char[] buf) @inline => encrypt(ctx, buf, mem);
-fn char[] encrypt_temp(AesCtx *ctx, char[] buf) @inline => encrypt(ctx, buf, tmem);
-fn char[] decrypt_new(AesCtx *ctx, char[] buf) @inline => decrypt(ctx, buf, mem);
-fn char[] decrypt_temp(AesCtx *ctx, char[] buf) @inline => decrypt(ctx, buf, tmem);
+fn char[] tencrypt(AesCtx *ctx, char[] buf) @inline => encrypt(ctx, buf, tmem);
+fn char[] tdecrypt(AesCtx *ctx, char[] buf) @inline => decrypt(ctx, buf, tmem);
 
 <*
 @param [&inout] ctx : "AES context."
@@ -173,22 +171,20 @@ import crypto::aes::ecb;
 fn void encrypt_buffer(AesCtx *ctx, char[] buf, char[] out) @inline => cbc_encrypt_buffer(ctx, buf, out);
 fn void decrypt_buffer(AesCtx *ctx, char[] buf, char[] out) @inline => cbc_decrypt_buffer(ctx, buf, out);
 
-fn char[] encrypt(AesCtx *ctx, char[] buf, Allocator allocator) {
+fn char[] encrypt(AesCtx *ctx, char[] buf, Allocator allocator = mem) {
 	char[] out = allocator::alloc_array(allocator, char, buf.len);
 	encrypt_buffer(ctx, buf, out);
 	return out;
 }
 
-fn char[] decrypt(AesCtx *ctx, char[] buf, Allocator allocator) {
+fn char[] decrypt(AesCtx *ctx, char[] buf, Allocator allocator = mem) {
 	char[] out = allocator::alloc_array(allocator, char, buf.len);
 	decrypt_buffer(ctx, buf, out);
 	return out;
 }
 
-fn char[] encrypt_new(AesCtx *ctx, char[] buf) @inline => encrypt(ctx, buf, mem);
-fn char[] encrypt_temp(AesCtx *ctx, char[] buf) @inline => encrypt(ctx, buf, tmem);
-fn char[] decrypt_new(AesCtx *ctx, char[] buf) @inline => decrypt(ctx, buf, mem);
-fn char[] decrypt_temp(AesCtx *ctx, char[] buf) @inline => decrypt(ctx, buf, tmem);
+fn char[] tencrypt(AesCtx *ctx, char[] buf) @inline => encrypt(ctx, buf, tmem);
+fn char[] tdecrypt(AesCtx *ctx, char[] buf) @inline => decrypt(ctx, buf, tmem);
 
 fn void xor_with_iv(char[] buf, char[] iv) @local
 {
@@ -256,22 +252,20 @@ import crypto::aes::ecb;
 fn void encrypt_buffer(AesCtx *ctx, char[] buf, char[] out) @inline => ctr_xcrypt_buffer(ctx, buf, out);
 fn void decrypt_buffer(AesCtx *ctx, char[] buf, char[] out) @inline => ctr_xcrypt_buffer(ctx, buf, out);
 
-fn char[] encrypt(AesCtx *ctx, char[] buf, Allocator allocator) {
+fn char[] encrypt(AesCtx *ctx, char[] buf, Allocator allocator = mem) {
 	char[] out = allocator::alloc_array(allocator, char, buf.len);
 	encrypt_buffer(ctx, buf, out);
 	return out;
 }
 
-fn char[] decrypt(AesCtx *ctx, char[] buf, Allocator allocator) {
+fn char[] decrypt(AesCtx *ctx, char[] buf, Allocator allocator = mem) {
 	char[] out = allocator::alloc_array(allocator, char, buf.len);
 	decrypt_buffer(ctx, buf, out);
 	return out;
 }
 
-fn char[] encrypt_new(AesCtx *ctx, char[] buf) @inline => encrypt(ctx, buf, mem);
-fn char[] encrypt_temp(AesCtx *ctx, char[] buf) @inline => encrypt(ctx, buf, tmem);
-fn char[] decrypt_new(AesCtx *ctx, char[] buf) @inline => decrypt(ctx, buf, mem);
-fn char[] decrypt_temp(AesCtx *ctx, char[] buf) @inline => decrypt(ctx, buf, tmem);
+fn char[] tencrypt(AesCtx *ctx, char[] buf) @inline => encrypt(ctx, buf, tmem);
+fn char[] tdecrypt(AesCtx *ctx, char[] buf) @inline => decrypt(ctx, buf, tmem);
 
 <*
 @param [&inout] ctx : "AES context."
@@ -372,7 +366,7 @@ fn void AesCtx.add_round_key(&self, usz round, char[] round_key) @private
 	{
 		for (j = 0; j < 4; j++)
 		{
-			self.state[i][j] ^= round_key[(round * aes::NB * 4) + (i * aes::NB) + j];
+			self.state[i][j] ^= round_key[(round * aes::COLNUM * 4) + (i * aes::COLNUM) + j];
 		}
 	}
 }
@@ -565,7 +559,7 @@ fn void AesKey.key_expansion(&self, char[] round_key, char[] key) @private
 		round_key[(i * 4) + 3] = key[(i * 4) + 3];
 	}
 
-	for (i = self.nk; i < aes::NB * (self.nr + 1); i++)
+	for (i = self.nk; i < aes::COLNUM * (self.nr + 1); i++)
 	{
 		k = (i - 1) * 4;
 		tempa[0] = round_key[k + 0];

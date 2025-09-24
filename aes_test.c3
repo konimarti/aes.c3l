@@ -69,7 +69,7 @@ fn void test_ecb_encrypt() @test
 		@pool()
 		{
 			ctx.init(t.aes, t.key);
-			char[] tmp_out = ecb::encrypt_temp(&ctx, t.plaintext);
+			char[] tmp_out = ecb::tencrypt(&ctx, t.plaintext);
 			assert(tmp_out[:16] == t.cipher[:16],
 				"Test %d failed; invalid cipher; got: %s, want: %s", i+1, tmp_out, t.cipher);
 		};
@@ -114,7 +114,7 @@ fn void test_ecb_decrypt() @test
 		@pool()
 		{
 			ctx.init(t.aes, t.key);
-			char[] tmp_out = ecb::decrypt_temp(&ctx, t.cipher);
+			char[] tmp_out = ecb::tdecrypt(&ctx, t.cipher);
 			assert(tmp_out[:16] == t.plaintext[:16],
 				"Test %d failed; invalid plaintext; got: %s, want: %s", i+1, tmp_out, t.plaintext);
 		};
@@ -160,7 +160,7 @@ fn void test_cbc_encrypt() @test
 		@pool()
 		{
 			ctx.init_with_iv(t.aes, t.key, iv)!!;
-			char[] tmp_out = cbc::encrypt_temp(&ctx, t.plaintext);
+			char[] tmp_out = cbc::tencrypt(&ctx, t.plaintext);
 			assert(tmp_out[:64] == t.cipher[:64],
 				"Test %d failed; invalid cipher; got: %s, want: %s", i+1, tmp_out, t.cipher);
 		};
@@ -206,7 +206,7 @@ fn void test_cbc_decrypt() @test
 		@pool()
 		{
 			ctx.init_with_iv(t.aes, t.key, iv)!!;
-			char[] tmp_out = cbc::decrypt_temp(&ctx, t.cipher);
+			char[] tmp_out = cbc::tdecrypt(&ctx, t.cipher);
 			assert(tmp_out[:64] == t.plaintext[:64],
 				"Test %d failed; invalid plaintext; got: %s, want: %s", i+1, tmp_out, t.plaintext);
 		};
@@ -259,13 +259,13 @@ fn void test_ctr_xcrypt() @test
 		{
 			// encrypt
 			ctx.init_with_iv(t.aes, t.key, iv)!!;
-			char[] cipher = ctr::encrypt_temp(&ctx, t.plaintext);
+			char[] cipher = ctr::tencrypt(&ctx, t.plaintext);
 			assert(cipher[:64] == t.cipher[:64],
 				"Test %d failed; invalid cipher; got: %s, want: %s", i+1, cipher, t.cipher);
 
 			// decrypt
 			ctx.init_with_iv(t.aes, t.key, iv)!!;
-			char[] text = ctr::decrypt_temp(&ctx, t.cipher);
+			char[] text = ctr::tdecrypt(&ctx, t.cipher);
 			assert(text[:64] == t.plaintext[:64],
 				"Test %d failed; invalid plaintext; got: %s, want: %s", i+1, text, t.plaintext);
 		};
