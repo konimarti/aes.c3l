@@ -20,18 +20,15 @@ AesCtx *ctx = AesCtx{}.init_with_iv(aes::AES128, key, iv);
 fn void encrypt_buffer(AesCtx *ctx, char[] text, char[] cipher)
 fn void decrypt_buffer(AesCtx *ctx, char[] cipher, char[] text)
 
-fn char[] encrypt(AesCtx *ctx, char[] text, Allocator allocator)
-fn char[] decrypt(AesCtx *ctx, char[] cipher, Allocator allocator)
+fn char[] encrypt(AesCtx *ctx, char[] text, Allocator allocator = mem)
+fn char[] decrypt(AesCtx *ctx, char[] cipher, Allocator allocator = mem)
 
-fn char[] encrypt_new(AesCtx *ctx, char[] text)
-fn char[] encrypt_temp(AesCtx *ctx, char[] text)
-
-fn char[] decrypt_new(AesCtx *ctx, char[] cipher)
-fn char[] decrypt_temp(AesCtx *ctx, char[] cipher)
+fn char[] tencrypt(AesCtx *ctx, char[] text)
+fn char[] tdecrypt(AesCtx *ctx, char[] cipher)
 ```
 
 
-### Example: AEC128 ECB encryption
+### Example: AES128 ECB encryption
 
 ```cpp
 module app;

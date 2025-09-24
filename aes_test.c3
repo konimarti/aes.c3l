@@ -1,7 +1,7 @@
 module crypto::aes_test;
 
 
-import crypto::aes;
+import std::crypto::aes;
 import std::io;
 
 struct TestCase

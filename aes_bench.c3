@@ -1,6 +1,6 @@
 module crypto::aes_bench;
 
-import crypto::aes;
+import std::crypto::aes;
 
 fn void init() @init
 {
