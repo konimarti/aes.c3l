@@ -13,8 +13,6 @@ Ported from github.com/kokke/tiny-aes-c by Koni Marti.
 *>
 module crypto::aes;
 
-import std::io;
-
 <* Block length in bytes. AES is 128-bit blocks only. *>
 const BLOCKLEN = 16;
 
@@ -40,6 +38,8 @@ const AesKey AES256 = { 256, 32, 240, 8, 14 };
  *
  */
 
+faultdef AES_IV_TOO_SHORT;
+
 struct AesCtx
 {
 	AesKey type;
@@ -62,12 +62,12 @@ fn AesCtx* AesCtx.init(&self, AesKey type, char[] key)
 @require key.len == type.key_len : "Key does not match expected length."
 @require iv.len == BLOCKLEN : "iv length should be equal to BLOCKLEN."
 *>
-fn AesCtx* AesCtx.init_with_iv(&self, AesKey type, char[] key, char[] iv)
+fn AesCtx*? AesCtx.init_with_iv(&self, AesKey type, char[] key, char[] iv)
 {
 	self.init(type, key);
 	if (iv.len < BLOCKLEN)
 	{
-		io::eprintn("iv: not long enough?");
+		return AES_IV_TOO_SHORT?;
 	}
 	self.iv[:BLOCKLEN] = iv[:BLOCKLEN];
 	return self;
